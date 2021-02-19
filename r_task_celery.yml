@@ -1,0 +1,29 @@
+version: '2'
+services:
+  celerybeat:
+    image: cecilio91/fomix:backend_analytics_v_latest
+    environment:
+      EJECUTAR: celery -A smx_analytics beat --loglevel=debug --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      POSTGRES_DB_NAME: db_analytics
+      POSTGRES_DB_PASSWORD: galileo.1564
+      POSTGRES_DB_USER: postgres
+      POSTGRES_SERVICE_HOST: 172.16.100.31
+      POSTGRES_SERVICE_PORT: '5432'
+      REDIS_DB_NAME: redis
+      REDIS_DB_PASSWORD: redis
+      REDIS_DB_USER: redis
+      REDIS_SERVICE_HOST: 172.16.100.31
+      REDIS_SERVICE_PORT: '6379'
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+  flower:
+    image: mher/flower
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379
+      - FLOWER_PORT=8888
+    ports:
+      - 8888:8888
+    restart: always
+  

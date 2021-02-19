@@ -1,0 +1,237 @@
+image: docker
+services:
+  - docker:dind    
+  
+stages:
+  - clean
+  - build
+  - deploy
+  - test
+  - push
+
+variables:
+  IMAGE_TAG: registry.gitlab.com/fomix/analytics/sas_backend:v3.$CI_PIPELINE_IID
+  IMAGE_TAG_LATEST: registry.gitlab.com/fomix/analytics/sas_backend:latest
+
+
+.clean-template: &clean-template
+  stage: clean
+  allow_failure: true
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script: 
+    - docker rm -f  $CONTAINER_NAME
+  except:    
+     - echo "No se encuentra contenedor " $CONTAINER_NAME
+     
+
+
+## LIMPIAR CONTENEDORES E IMAGENES EN EL CONTENEDOR
+cont-django:   
+  <<: *clean-template
+  variables:
+    CONTAINER_NAME: sasdj
+  only:
+    - test
+
+cont-postgres:   
+  <<: *clean-template
+  variables:
+    CONTAINER_NAME: saspg
+  only:
+    - test
+
+cont-redis:   
+  <<: *clean-template
+  variables:
+    CONTAINER_NAME: redis
+  only:
+    - test
+
+cont-flower:   
+  <<: *clean-template
+  variables:
+    CONTAINER_NAME: flower
+  only:
+    - test
+
+# ----------------- CLEAN IMAGES -----------------------------------------------
+imag-django:
+  stage: clean  
+  allow_failure: true
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script:    
+    - docker rmi -f cecilio91/fomix:backend_analytics_v1
+  except:    
+    changes:  
+        - echo "No se encuentra contenedor cecilio91/fomix:backend_analytics_v1"   
+  only:
+    - test
+    
+imagen-gunicorn:
+  stage: clean  
+  allow_failure: true
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script:    
+    - docker rmi -f cecilio91/fomix:backend_gunicorn
+    - docker images -a -q
+  except:    
+    changes:  
+        - echo "No se encuentra contenedor cecilio91/fomix:backend_gunicorn"       
+  only:
+    - test        
+# -------------------------------------------------------------------------------
+
+build-redis:
+  stage: build  
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script:
+    - docker-compose -f build.yml build redis
+  only:
+    - test
+    
+build-postgres:
+  stage: build  
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script:
+    - docker-compose -f build.yml build postgres
+  only:
+    - test
+  
+build-django:
+  stage: build  
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  before_script:
+    - docker login -u $DOCKER_LOGIN_USER2 -p $DOCKER_LOGIN_PASW2  
+    - echo $IMAGE_TAG
+  script:
+    - docker-compose -f build.yml build django
+    - docker ps -a
+    - docker images -a -q
+  except:    
+    changes:  
+        - echo "No se encuentra contenedor cecilio91/fomix:backend_gunicorn"       
+  only:
+    - test
+  
+build-flower:
+  stage: build  
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  before_script:
+    - docker login -u $DOCKER_LOGIN_USER2 -p $DOCKER_LOGIN_PASW2  
+    - echo $IMAGE_TAG
+  script:
+    - docker-compose -f build.yml build flower
+  only:
+    - test  
+# Construir contenedores nuevos.------------------------------------------------
+
+container-postgres:
+  stage: deploy  
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script:
+    - docker-compose -f build.yml up -d postgres 
+  only:
+    - test
+
+container-redis:
+  stage: deploy  
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script:
+    - docker-compose -f build.yml up -d redis 
+  only:
+    - test
+
+
+container-django:
+  stage: deploy  
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script:
+    - docker-compose -f build.yml up -d django 
+    #- docker-compose -f build.yml run django python manage.py makemigrations
+    #- docker-compose -f build.yml run django python manage.py migrate
+  only:
+    - test
+
+
+container-celerybeat:
+  stage: deploy  
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script:
+    - docker-compose -f start.yml up -d celerybeat 
+  only:
+    - test    
+
+container-celeryworker:
+  stage: deploy  
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script:
+    - docker-compose -f start.yml up -d celeryworker 
+  only:
+    - test   
+    
+container-flower:
+  stage: deploy  
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  script:
+    - docker-compose -f start.yml up -d flower 
+  only:
+    - test       
+# Crear Pruebas ----------------------------------------------------------------
+
+build:
+  tags: 
+    - docker
+    - docker-compose
+    - jenkins
+  stage: push
+  before_script:
+    - docker login registry.gitlab.com -u $GITLAB_USER2 -p $GITLAB_PASW2
+    #- docker login -u $DOCKER_LOGIN_USER2 -p $DOCKER_LOGIN_PASW2
+  script:
+    - docker commit sasdj $IMAGE_TAG
+    - docker push $IMAGE_TAG
+    - docker commit sasdj $IMAGE_TAG_LATEST
+    - docker push $IMAGE_TAG_LATEST
+  only:
+    - test      
+    
+

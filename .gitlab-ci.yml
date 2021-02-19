@@ -1,0 +1,55 @@
+image: docker
+services:
+  - docker:18.09.7-dind
+  
+stages:
+  - clean
+  - build_all
+
+
+variables:
+  IMAGE_TAG: registry.gitlab.com/fomix/analytics/sas_backend:v3.$CI_PIPELINE_IID
+  IMAGE_TAG_LATEST: registry.gitlab.com/fomix/analytics/sas_backend:latest
+
+
+
+
+imagen-django:
+    stage: clean
+    allow_failure: true
+    tags:
+      - docker
+      - docker-compose
+      - jenkins
+    script:
+      - docker rm -f sasdj
+      - docker rmi -f cecilio91/fomix:backend_analytics_v1
+    except:
+      changes:
+          - echo "No se encuentra contenedor"
+    only:
+      - test
+  
+
+# Build Django Images.
+build-django:
+  stage: build_all
+  tags:
+    - docker
+    - docker-compose
+    - jenkins
+  before_script:
+    - docker login registry.gitlab.com -u $GITLAB_USER2 -p $GITLAB_PASW2
+    #- docker login registry.gitlab.com -u $GITLAB_USER3 -p $GITLAB_PASW3
+    - sudo pip install docker-compose
+  script:
+    - docker-compose -f build.yml up -d django
+    - docker commit sasdj $IMAGE_TAG
+    - docker push $IMAGE_TAG
+    - docker commit sasdj $IMAGE_TAG_LATEST
+    - docker push $IMAGE_TAG_LATEST
+  only:
+    - test
+
+
+

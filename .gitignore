@@ -1,0 +1,10 @@
+/smx_analytics/.vscode/
+/smx_analytics/smx_analyticsLenv/
+/smx_analytics/.venv/
+/smx_analytics/backup/backups_config/*.yaml
+*.pyc
+/smx_analyticsEnvLinux/
+/smx_analytics/uploads/user
+/smx_analytics/uploads/componente
+/smx_analytics/uploads/simbologia
+/smx_analytics/uploads/maquina

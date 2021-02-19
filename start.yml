@@ -1,0 +1,118 @@
+#version: '3.0'
+version: '2'
+services:
+  postgres:
+    image: postgres:latest # 10.04
+    container_name: saspg
+    environment:
+        TZ: "America/Mexico_City"
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: galileo.1564
+        POSTGRES_DB: db_analytics
+    ports:
+      - '5432:5432'
+    restart: always
+    volumes:
+      - /vol_fomix_analitics_v1/postgres:/var/lib/postgresql/data
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    networks:
+      - backend
+  redis:
+    container_name: redis
+    image: redis
+    ports:
+      - "6379:6379"
+    entrypoint: redis-server --appendonly yes
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    networks:
+      - backend
+  django:
+    image:  cecilio91/fomix:backend_analytics_v1
+    container_name: sasdj
+    ports:
+      - '58000:8000'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    environment:
+        POSTGRES_DB_NAME: 'db_analytics'
+        POSTGRES_DB_USER: 'postgres'
+        POSTGRES_DB_PASSWORD: 'galileo.1564'
+        POSTGRES_SERVICE_HOST: 'saspg'
+        POSTGRES_SERVICE_PORT: '5432'
+        REDIS_DB_NAME: 'redis'
+        REDIS_DB_USER: 'redis'
+        REDIS_DB_PASSWORD: 'redis'
+        REDIS_SERVICE_HOST: 'redis'
+        REDIS_SERVICE_PORT: '6379'
+        EJECUTAR: 'python3 manage.py runserver 0.0.0.0:8000'
+    networks:
+      - backend
+
+  celeryworker:
+    image: cecilio91/fomix:backend_analytics_v1
+    container_name: celeryworker
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    environment:
+        POSTGRES_DB_NAME: 'db_analytics'
+        POSTGRES_DB_USER: 'postgres'
+        POSTGRES_DB_PASSWORD: 'galileo.1564'
+        POSTGRES_SERVICE_HOST: 'saspg'
+        POSTGRES_SERVICE_PORT: '5432'
+        REDIS_DB_NAME: 'redis'
+        REDIS_DB_USER: 'redis'
+        REDIS_DB_PASSWORD: 'redis'
+        REDIS_SERVICE_HOST: 'redis'
+        REDIS_SERVICE_PORT: '6379'
+        EJECUTAR: 'celery -A smx_analytics worker -l info -P eventlet'
+    networks:
+      - backend
+
+  celerybeat:
+    image: cecilio91/fomix:backend_analytics_v1
+    container_name: celerybeat
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    environment:
+        POSTGRES_DB_NAME: 'db_analytics'
+        POSTGRES_DB_USER: 'postgres'
+        POSTGRES_DB_PASSWORD: 'galileo.1564'
+        POSTGRES_SERVICE_HOST: 'saspg'
+        POSTGRES_SERVICE_PORT: '5432'
+        REDIS_DB_NAME: 'redis'
+        REDIS_DB_USER: 'redis'
+        REDIS_DB_PASSWORD: 'redis'
+        REDIS_SERVICE_HOST: 'redis'
+        REDIS_SERVICE_PORT: '6379'
+        EJECUTAR: "celery -A smx_analytics beat --loglevel=debug --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    networks:
+      - backend
+
+  flower:
+    image: mher/flower
+    container_name: flower
+    environment:
+      - CELERY_BROKER_URL=redis://10.0.75.1:6379
+      - FLOWER_PORT=8888
+    ports:
+      - 8888:8888
+    restart: always
+
+networks:
+  backend:

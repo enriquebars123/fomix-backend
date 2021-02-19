@@ -1,0 +1,94 @@
+//  DELETE LAST CONTAINER AND IMAGES...
+node {
+    stage "delete_container"
+    try {
+        sh 'docker rm -f sas_pg'
+        sh 'docker rm -f sas_dj'
+
+    } catch(err) {
+        echo 'Don´t exist the container'
+    }
+
+    stage "delete_imagen"
+    try {
+        sh 'docker rmi -f cecilio91/fomix:backend_analytics_v1'
+        sh 'docker rmi -f postgres:latest'
+    } catch(err) {
+        echo 'Don´t exist the image'
+    }
+}
+
+//  Build IMAGES ...
+
+pipeline {
+  agent any
+  options {
+    timeout(time: 30, unit: 'MINUTES')
+  }
+
+  environment {
+    ARTIFACT_ID = "cecilio91/fomix:backend_analytics_v${env.BUILD_NUMBER}"
+  }
+   stages {
+     stage('GET_PROYECT') {
+       steps {
+           git branch: 'development', credentialsId: 'gitlab_credentials', url: 'http://172.16.53.236/orlandohdz/fomix_analitica.git'
+        }
+     }
+  stage('BUILD_POSTGRES') {
+        steps {
+           sh 'docker-compose -f proyecto/build.yml up -d postgres'
+             }
+          }
+
+   stage('BUILD_DJANGO') {
+      steps {
+         sh 'docker-compose -f proyecto/build.yml up -d django'
+
+            }
+         }
+   stage('MAKEMIGRATIONS') {
+     steps {
+        sh 'docker-compose -f proyecto/build.yml run django python manage.py makemigrations'
+           }
+        }
+   stage('MIGRATE') {
+     steps {
+        sh 'docker-compose -f proyecto/build.yml run django python manage.py migrate'
+           }
+        }
+
+   stage('PUSH IMAGEN') {
+     steps {
+        withDockerRegistry([ credentialsId: "dockerhub_credentials", url: "" ]) {
+         sh 'docker commit sas_dj $ARTIFACT_ID'
+         sh 'docker push $ARTIFACT_ID'
+        }
+
+
+          }
+        }
+
+}
+// CONFIGURATION FOR SEND ERROR USING
+post {
+        changed {
+            script {
+                if (currentBuild.currentResult == 'FAILURE') { // Other values: SUCCESS, UNSTABLE
+                    // Send an email only if the build status has changed from green/unstable to red
+                    emailext subject: '$DEFAULT_SUBJECT',
+                    attachLog: true,
+                    body: '$DEFAULT_CONTENT',
+                        recipientProviders: [
+                            [$class: 'CulpritsRecipientProvider'],
+                            [$class: 'DevelopersRecipientProvider'],
+                            [$class: 'RequesterRecipientProvider']
+                        ],
+                        replyTo: '$DEFAULT_REPLYTO',
+                        to: '$DEFAULT_RECIPIENTS'
+                }
+            }
+        }
+    }
+
+}

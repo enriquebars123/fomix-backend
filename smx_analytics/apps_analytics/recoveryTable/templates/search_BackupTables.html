@@ -1,0 +1,12 @@
+{% extends 'admin/change_list.html' %}
+
+{% block object-tools %}
+    <div class="submit-row">
+        <form action="backupTable/" method="POST">
+            {% csrf_token %}
+                <input type="submit" value="search Backups" name="_backups">
+        </form>
+    </div>
+    <br />
+    {{ block.super }}
+{% endblock %}

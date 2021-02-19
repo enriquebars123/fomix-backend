@@ -1,0 +1,143 @@
+formato de peticiones API's
+	post: api/v1/{controlador}/ + json
+	delete: api/v1/{controlador}/{pk}
+	get: api/v1/{controlador}/{pk} 
+	post: api/v1/{controlador}/{pk} + json
+
+* CATALOGOS
+
+Agregar catalogo de perfiles
+	api/v1/perfil
+		{
+		"nombre": ""
+		}
+	
+Agregar catalogo de menu
+	api/v1/menu
+		{
+		"nombre": "",
+		"nivel": null,
+		"parent": null
+		}
+Agregar catalogo de fuente de datos
+	api/av1/fuenteDatos
+		{
+		"nombre": "",
+		"url": "",
+		"nombreVar": "",
+		"valor": "",
+		"fecha": null,
+		"referencia": ""
+		}
+	
+Agregar catalogo predictivo
+	api/v1/predictivo
+		{
+		"nombre": "",
+		"descripcion": ""
+		}
+		
+Agregar catalogo de componentes
+	api/v1/componente
+		{
+		"nombre": "",
+		"descripcion": "",
+		"imagen": null
+		}
+	
+* RELACIONES 
+
+Agregar menu y submenu a un perfil
+	api/v1/perfilMenu
+		{
+		"id_perfil": null,
+		"id_menu": null,
+		"isActive": false
+		}
+	
+Agregar perfiles al usuario
+	api/v1/userPerfil
+		{
+		"id_user": null,
+		"id_perfil": null
+		}
+		
+Agregar Predictivos a componentes
+	api/v1/comPredictivo
+		{
+		"id_componentes": null,
+		"id_predictivo": null
+		}
+			
+
+Agregar Fuente de datos a predictivos
+	api/v1/predFuenteDatos
+		{
+		"id_fuenteDatos": null,
+		"id_predictivo": null
+		}
+	
+* REFERENCIAS
+
+Agregar referencia de Empresas
+	api/v1/refEmpresa
+		{
+		"nombre": ""
+		}
+	
+Agregar referencia de Planta
+	api/v1/refPlanta
+		{
+		"id_empresa": null,
+		"nombre": ""
+		}
+
+Agregar referencia de Linea	
+	api/v1/refLinea
+		{
+		"id_planta": null,
+		"nombre": ""
+		}
+Agregar referencia de Maquina	
+	api/v1/refMaquina
+	{
+	"id_linea": null,
+	"nombre": "",
+	"imagen": null
+	}
+		
+
+* USUARIOS
+Agregar usuario
+	api/v1/user
+		{
+		"id_area": null,
+		"user": "",
+		"email": "",
+		"nombre": "",
+		"password": "",
+		"versiones_piloto": null,
+		"notificar": null
+		}
+agregar catalogo de area
+	api/v1/userArea
+		{
+		"nombre": ""
+		}
+
+
+* VARIABLES
+Agregar variables Independientes y dependientes
+	api/v1/variables/
+		{
+		"nombre": "",
+		"componente": "",
+		"fuenteDato": "",
+		"variable": "",
+		"variableRef": "",
+		"tipoDato": "",
+		"tipoVarible": "",
+		"isActive": false
+		}
+
+

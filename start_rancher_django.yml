@@ -1,0 +1,80 @@
+version: '2'
+services:
+  celerybeat:
+    image: cecilio91/fomix:backend_analytics_v2.8
+    environment:
+      EJECUTAR: celery -A smx_analytics beat --loglevel=debug --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      POSTGRES_DB_NAME: db_analytics
+      POSTGRES_DB_PASSWORD: galileo.1564
+      POSTGRES_DB_USER: postgres
+      POSTGRES_SERVICE_HOST: postgres
+      POSTGRES_SERVICE_PORT: '5432'
+      REDIS_DB_NAME: redis
+      REDIS_DB_PASSWORD: redis
+      REDIS_DB_USER: redis
+      REDIS_SERVICE_HOST: redis
+      REDIS_SERVICE_PORT: '6379'
+    external_links:
+    - DATA-BASE/postgres:postgres
+    - DATA-BASE/redis:redis
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+    labels:
+      io.rancher.scheduler.affinity:host_label: backend=true
+  django:
+    image: cecilio91/fomix:backend_analytics_v2.8
+    environment:
+      EJECUTAR: python3 manage.py runserver 0.0.0.0:8000
+      POSTGRES_DB_NAME: db_analytics
+      POSTGRES_DB_PASSWORD: galileo.1564
+      POSTGRES_DB_USER: postgres
+      POSTGRES_SERVICE_HOST: postgres
+      POSTGRES_SERVICE_PORT: '5432'
+      REDIS_DB_NAME: redis
+      REDIS_DB_PASSWORD: redis
+      REDIS_DB_USER: redis
+      REDIS_SERVICE_HOST: redis
+      REDIS_SERVICE_PORT: '6379'
+    external_links:
+    - DATA-BASE/postgres:postgres
+    - DATA-BASE/redis:redis
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+    ports:
+    - 58000:8000/tcp
+    labels:
+      io.rancher.scheduler.affinity:host_label: backend=true
+  celeryworker:
+    image: cecilio91/fomix:backend_analytics_v2.8
+    environment:
+      EJECUTAR: celery -A smx_analytics worker -l info -P eventlet
+      POSTGRES_DB_NAME: db_analytics
+      POSTGRES_DB_PASSWORD: galileo.1564
+      POSTGRES_DB_USER: postgres
+      POSTGRES_SERVICE_HOST: postgres
+      POSTGRES_SERVICE_PORT: '5432'
+      REDIS_DB_NAME: redis
+      REDIS_DB_PASSWORD: redis
+      REDIS_DB_USER: redis
+      REDIS_SERVICE_HOST: redis
+      REDIS_SERVICE_PORT: '6379'
+    external_links:
+    - DATA-BASE/postgres:postgres
+    - DATA-BASE/redis:redis
+    labels:
+      io.rancher.scheduler.affinity:host_label: backend=true
+  flower:
+    image: mher/flower
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379
+      FLOWER_PORT: '8888'
+    external_links:
+    - DATA-BASE/redis:redis
+    ports:
+    - 8888:8888/tcp
+    labels:
+      io.rancher.scheduler.affinity:host_label: backend=true

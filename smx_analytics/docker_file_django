@@ -1,0 +1,42 @@
+FROM ubuntu:18.04
+#FROM nginx:latest
+
+RUN apt-get update
+RUN apt-get install -y python3-dev libldap2-dev libsasl2-dev libssl-dev 
+#nginx
+RUN apt-get install nano
+
+RUN apt-get install -y python3
+RUN apt-get install -y python3-pip
+
+# Copiar proyecto dentro del contenedor
+WORKDIR /backend
+COPY . /backend
+
+# Instalar librerias
+RUN pip3 install -r /backend/requirements.txt; exit 0
+
+# Realizar migraciones
+#RUN python3 /backend/manage.py makemigrations --noinput; exit 0
+#RUN python3 /backend/manage.py migrate --noinput; exit 0
+
+# Añadiendo los estilos 
+RUN python3 manage.py collectstatic --noinput
+
+# VARIABLES DE ENTORNO CONFIGURACIÓN DE GUNICORN.
+ENV NAME backend
+ENV DJANGODIR /backend
+ENV USER root
+ENV GROUP root
+ENV NUM_WORKERS 5
+ENV DJANGO_SETTINGS_MODULE smx_analytics.settings
+ENV DJANGO_WSGI_MODULE smx_analytics.wsgi
+ENV PYTHONPATH $DJANGODIR
+
+CMD exec gunicorn  ${DJANGO_WSGI_MODULE}:application \
+--name $NAME \
+--workers $NUM_WORKERS \
+--user=$USER --group=$GROUP \
+-b :8000 \
+--log-level=debug \
+--log-file=-

@@ -1,0 +1,8 @@
+[
+  {
+    "model": "referencias.referenciaEmpresa",
+    "fields": {
+      "nombre":"SISAMEX"
+    }
+  }
+]

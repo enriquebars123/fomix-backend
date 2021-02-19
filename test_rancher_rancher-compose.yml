@@ -1,0 +1,10 @@
+pxc:
+  scale: 3
+wordpress-lb:
+  scale: 3
+  load_balancer_config:
+    name: wordpress-lb config
+wordpress:
+  scale: 6
+gluster:
+  scale: 2

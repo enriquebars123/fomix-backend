@@ -1,0 +1,50 @@
+pxc:
+  restart: always
+  environment:
+    PXC_ROOT_PASSWORD: test
+    PXC_SST_PASSWORD: ye8kfGxP
+  labels:
+    io.rancher.scheduler.global: 'true'
+    io.rancher.scheduler.affinity:host_label: target.service=database
+  tty: true
+  image: nixel/rancher-percona-xtradb-cluster:v1.1
+  privileged: true
+  stdin_open: true
+  volume_driver: /var/lib/mysql:/var/lib/mysql
+wordpress-lb:
+  restart: always
+  ports:
+  - 80:80
+  labels:
+    io.rancher.loadbalancer.target.wordpress: 80/=80
+  tty: true
+  image: rancher/load-balancer-service
+  links:
+  - wordpress:wordpress
+  stdin_open: true
+wordpress:
+  restart: always
+  environment:
+    DB_PASSWORD: ye8kfGxP
+  labels:
+    io.rancher.scheduler.affinity:host_label: target.service=web
+  tty: true
+  image: nixel/rancher-wordpress-ha:v1.1
+  links:
+  - gluster:storage
+  - pxc:db
+  privileged: true
+  stdin_open: true
+gluster:
+  restart: always
+  environment:
+    ROOT_PASSWORD: LazNdFaj
+  labels:
+    io.rancher.scheduler.global: 'true'
+    io.rancher.scheduler.affinity:host_label: target.service=storage
+  tty: true
+  image: nixel/rancher-glusterfs-server:v2.3
+  privileged: true
+  volumes:
+  - /gluster_volume:/gluster_volume
+  stdin_open: true

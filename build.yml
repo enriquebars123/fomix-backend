@@ -1,0 +1,113 @@
+version: '3.0'
+services:
+  postgres:
+    image: postgres:9.6.16
+    container_name: saspg
+    environment:
+        TZ: "America/Mexico_City"
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: galileo.1564
+        POSTGRES_DB: db_analytics
+    ports:
+      - '65432:5432'
+    restart: always
+    volumes:
+      - /vol_fomix_analitics_v1/postgres:/var/lib/postgresql/data
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+
+  redis:
+    container_name: redis
+    image: redis
+    ports:
+      - "6379:6379"
+    entrypoint: redis-server --appendonly yes
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+
+
+  django:
+    build:
+       context: smx_analytics
+       dockerfile:  Dockerfile
+    container_name: sasdj
+    ports:
+      - '58000:8000'
+    image: cecilio91/fomix:backend_analytics_v1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    volumes: 
+      - /vol_fomix_analitics_v1:/django_app/backups
+      - /media_user:/django_app/uploads/user
+      - /media_componente:/django_app/uploads/componente
+      - /media_simbologia:/django_app/uploads/simbologia
+      - /media_maquina:/django_app/uploads/maquina
+      - /backups:/django_app/backup/backups_config
+    environment:
+        POSTGRES_DB_NAME: 'db_analytics'
+        POSTGRES_DB_USER: 'postgres'
+        POSTGRES_DB_PASSWORD: 'galileo.1564'
+        POSTGRES_SERVICE_HOST: 'saspg'
+        POSTGRES_SERVICE_PORT: '5432'
+        REDIS_DB_NAME: 'redis'
+        REDIS_DB_USER: 'redis'
+        REDIS_DB_PASSWORD: 'redis'
+        REDIS_SERVICE_HOST: 'redis'
+        REDIS_SERVICE_PORT: '6379'
+        EJECUTAR: 'python3 manage.py runserver 0.0.0.0:8000'
+
+  flower:
+    image: mher/flower
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379
+      - FLOWER_PORT=8888
+    ports:
+      - 8888:8888
+    restart: always
+
+
+  gunicorn:
+    build:
+       context: smx_analytics
+       dockerfile: docker_file_django
+    container_name: sasdjgunicorn
+    ports:
+       - '9001:8000'
+    image: cecilio91/fomix:backend_gunicorn
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    restart: always
+
+    environment:
+      NAME: backend
+      DJANGODIR: /backend
+      USER: root
+      GROUP: root
+      NUM_WORKERS: 5
+      DJANGO_SETTINGS_MODULE: smx_analytics.settings
+      DJANGO_WSGI_MODULE: smx_analytics.wsgi
+      PYTHONPATH: $DJANGODIR
+
+  nginx:
+    build:
+      context: smx_analytics
+      dockerfile: docker_file_nginx
+    container_name: 'frontend'
+    ports:
+      - 80:80
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    restart: always

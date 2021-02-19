@@ -1,0 +1,39 @@
+#version: '3.0'
+version: '2'
+services:
+  postgres:
+    image: postgres:9.6.16 # 10.04
+    container_name: saspg
+    environment:
+        TZ: "America/Mexico_City"
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: galileo.1564
+        POSTGRES_DB: db_analytics
+    ports:
+      - '5432:5432'
+    restart: always
+    volumes:
+      - /vol_fomix_analitics_v1/postgres:/var/lib/postgresql/data
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    networks:
+      - backend
+  redis:
+    container_name: redis
+    image: redis
+    ports:
+      - "6379:6379"
+    entrypoint: redis-server --appendonly yes
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    networks:
+      - backend
+
+networks:
+  backend:
